@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PremiumPal</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <h1>Welcome to PremiumPal</h1>
+      <p>
+        Instant access to premium tools – ChatGPT Plus, CapCut Pro, Canva Pro &
+        more
+      </p>
+      <button class="shop-now" onclick="scrollToProducts()">Shop Now</button>
+    </header>
+
+    <section class="products" id="products">
+      <div class="product">
+        <img src="assets/ChatGPT.jpg" alt="ChatGPT Plus" />
+        <h2>ChatGPT Plus</h2>
+        <p>Priority access, faster responses, and GPT-4.<br />₦3,000/month</p>
+        <button onclick="addToCart(3000)">Add to Cart</button>
+      </div>
+
+      <div class="product">
+        <img src="assets/Canva.jpg" alt="Canva Pro" />
+        <h2>Canva Pro</h2>
+        <p>
+          Design like a pro — premium templates, tools & team sharing.<br />₦3,000/month
+        </p>
+        <button onclick="addToCart(3000)">Add to Cart</button>
+      </div>
+
+      <div class="product">
+        <img src="assets/CapCut.jpg" alt="CapCut Pro" />
+        <h2>CapCut Pro</h2>
+        <p>Unlock advanced editing tools and effects.<br />₦4,000/month</p>
+        <button onclick="addToCart(4000)">Add to Cart</button>
+      </div>
+
+      <div class="product">
+        <img src="assets/Combo.jpg" alt="Combo Pack" />
+        <h2>Combo Pack</h2>
+        <p>Get all 3 tools at once for ₦10,000/month</p>
+        <button onclick="addToCart(10000)">Add to Cart</button>
+      </div>
+    </section>
+
+    <section class="cart">
+      <h3>🛒 Your Cart</h3>
+      <p>Total: ₦<span id="cart-total">0</span></p>
+      <input
+        type="email"
+        id="customer-email"
+        placeholder="Enter your email"
+        required
+      />
+      <button onclick="checkout()">Checkout with Paystack</button>
+    </section>
+
+    <section class="trust">
+      <h3>Trusted by 5,000+ users across Nigeria</h3>
+      <div class="payments">
+        <span>🔒 SSL Secured</span>
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/4/41/Visa_Logo.png"
+          alt="Visa"
+          width="50"
+        />
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1024px-Mastercard-logo.svg.png"
+          alt="Mastercard"
+          width="50"
+        />
+        <img
+          src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg"
+          alt="PayPal"
+          width="50"
+        />
+      </div>
+      <p>
+        SSL-Secured Checkout • Instant Delivery • 30-Day Money-Back Guarantee
+      </p>
+
+      <h3>What Our Customers Say</h3>
+      <div class="testimonials">
+        <blockquote>
+          “I got ChatGPT Plus within 10 minutes after payment. Everything works
+          smoothly! Definitely recommend PremiumPal.”<br />
+          <strong>Sarah, KWASU</strong>
+        </blockquote>
+        <blockquote>
+          “I’ve saved hours of design time with Canva Pro from PremiumPal. Legit
+          & fast delivery!”<br />
+          <strong>Daniel, UNILAG</strong>
+        </blockquote>
+      </div>
+    </section>
+
+    <footer>
+      <p>
+        © 2025 PremiumPal. All rights reserved | Contact:
+        premiumpalofficial@gmail.com
+      </p>
+    </footer>
+
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+    <script>
+      let total = 0;
+
+      function addToCart(amount) {
+        total += amount;
+        document.getElementById("cart-total").innerText = total;
+      }
+
+      function scrollToProducts() {
+        document
+          .getElementById("products")
+          .scrollIntoView({ behavior: "smooth" });
+      }
+
+      function checkout() {
+        if (total === 0) {
+          alert("Your cart is empty!");
+          return;
+        }
+
+        const email = document.getElementById("customer-email").value.trim();
+        if (email === "") {
+          alert("Please enter your email!");
+          return;
+        }
+
+        let handler = PaystackPop.setup({
+          key: "pk_live_f186dc6f801f4ea73ef5fbc160a4a09dfc4ceffe", // 🔑 Replace with your Paystack public key
+          email: email,
+          amount: total * 100, // in kobo
+          currency: "NGN",
+          ref: "PPAL_" + Math.floor(Math.random() * 1000000000 + 1),
+          callback: function (response) {
+            console.log("Payment ref:", response.reference);
+
+            fetch("/api/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ reference: response.reference }),
+            })
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.status === "success") {
+                  // ✅ Ask for final delivery email
+                  const finalEmail = prompt(
+                    `✅ Payment verified!\n\n` +
+                      `Please confirm your best email so we can send your premium account details:`
+                  );
+
+                  if (finalEmail) {
+                    // ✅ Open email app with draft
+                    const subject = encodeURIComponent(
+                      "PremiumPal Payment Reference"
+                    );
+                    const body = encodeURIComponent(
+                      `Hello PremiumPal Team,\n\n` +
+                        `I just made a payment.\n\n` +
+                        `Payment Reference: ${response.reference}\n` +
+                        `My preferred email for delivery: ${finalEmail}\n\n` +
+                        `Thank you!`
+                    );
+                    const mailtoLink = `mailto:premiumpalofficial@gmail.com?subject=${subject}&body=${body}`;
+
+                    window.location.href = mailtoLink;
+
+                    total = 0;
+                    document.getElementById("cart-total").innerText = total;
+                    document.getElementById("customer-email").value = "";
+                  } else {
+                    alert("❌ You did not enter an email.");
+                  }
+                } else {
+                  alert("❌ Payment could not be verified.");
+                }
+              })
+              .catch((err) => {
+                console.error(err);
+                alert("❌ Server error verifying payment.");
+              });
+          },
+          onClose: function () {
+            alert("Payment window closed.");
+          },
+        });
+
+        handler.openIframe();
+      }
+    </script>
+  </body>
+</html>
